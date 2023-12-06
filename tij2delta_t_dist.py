@@ -10,7 +10,7 @@ def save_dist(filename, delta_t_history):
     bins = np.unique(delta_t_history)
     hist, _ = np.histogram(delta_t_history, np.append(bins, max(bins)+1))
 
-    df_dat = pd.DataFrame({'delta_t': bins, 'freq': hist / 2}).astype({'delta_t': 'int', 'freq': 'int'})
+    df_dat = pd.DataFrame({'delta_t': bins, 'freq': hist}).astype({'delta_t': 'int', 'freq': 'int'})
     df_dat.to_csv(filename, sep=' ', header=False, index=False)
 
     return
@@ -21,16 +21,9 @@ def main(input_file, output_file_delta_t, output_file_delta_t_dist):
     df_tij = pd.read_csv(input_file, sep=' ', header=None)
     df_tij.columns = ['t', 'i', 'j']
 
-    # undirected
-    df_tji = pd.DataFrame()
-    df_tji[['t', 'i', 'j']] = df_tij[['t', 'j', 'i']]
-
-    ## concatenate
-    df_tij_undirected = pd.concat([df_tij, df_tji], ignore_index=True)
-
     # compute contact duration distribution
-    min_t, max_t = df_tij_undirected['t'].min(), df_tij_undirected['t'].max()
-    max_id = df_tij_undirected['i'].max() + 1
+    min_t, max_t = df_tij['t'].min(), df_tij['t'].max()
+    max_id = df_tij['i'].max() + 1
 
     ## edge age matrix
     delta_t = np.zeros([max_id, max_id])
@@ -38,7 +31,7 @@ def main(input_file, output_file_delta_t, output_file_delta_t_dist):
 
     t_interval = 20
     for t in np.arange(min_t, max_t, t_interval):
-        df_cursor = df_tij_undirected[np.logical_and(df_tij_undirected['t'] >= t, df_tij_undirected['t'] < (t + t_interval))]
+        df_cursor = df_tij[np.logical_and(df_tij['t'] >= t, df_tij['t'] < (t + t_interval))]
 
         # overall
         A = np.zeros([max_id, max_id])
