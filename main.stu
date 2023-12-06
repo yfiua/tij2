@@ -1,0 +1,19 @@
+@all: tij_SFHH.dat;
+
+tij_SFHH.dat: tij_SFHH.dat_.gz
+{
+    gzip -df tij_SFHH.dat_.gz
+    mv tij_SFHH.dat_ tij_SFHH.dat
+}
+
+tij_SFHH.dat_.gz:
+{
+    wget http://www.sociopatterns.org/wp-content/uploads/2018/12/tij_SFHH.dat_.gz
+    touch -c tij_SFHH.dat_.gz
+}
+
+@clean:
+{
+    rm -f tij_SFHH.dat
+    rm -f tij_SFHH.dat_.gz
+}
