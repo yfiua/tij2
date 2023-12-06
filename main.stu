@@ -1,6 +1,16 @@
-@all: tij_SFHH.dat;
+@all: delta_t_dist_SFHH.dat delta_t_SFHH.dat;
 
-tij_SFHH.dat: tij_SFHH.dat_.gz
+delta_t_dist_SFHH.dat: tij_SFHH.dat tij2delta_t_dist.py
+{
+    python3 tij2delta_t_dist.py tij_SFHH.dat delta_t_SFHH.dat delta_t_dist_SFHH.dat
+}
+
+delta_t_SFHH.dat: delta_t_dist_SFHH.dat
+{
+    touch -c delta_t_SFHH.dat
+}
+
+tij_SFHH.dat: -t tij_SFHH.dat_.gz
 {
     gzip -df tij_SFHH.dat_.gz
     mv tij_SFHH.dat_ tij_SFHH.dat
