@@ -18,12 +18,12 @@ def save_dist(filename, delta_t_history):
 # Main
 def main(input_file, output_file_delta_t, output_file_delta_t_dist):
     # load data
-    df_tij = pd.read_csv(input_file, sep=' ', header=None)
+    df_tij = pd.read_csv(input_file, sep=' |\t', header=None, engine='python')
     df_tij.columns = ['t', 'i', 'j']
 
     # compute contact duration distribution
     min_t, max_t = df_tij['t'].min(), df_tij['t'].max()
-    max_id = df_tij['i'].max() + 1
+    max_id = np.max(df_tij[['i', 'j']].values) + 1
 
     ## edge age matrix
     delta_t = np.zeros([max_id, max_id])

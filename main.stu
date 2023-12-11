@@ -1,13 +1,23 @@
-@all: delta_t_dist_SFHH.dat delta_t_SFHH.dat;
+@all: [deps.all];
+@example: delta_t_dist_SFHH.dat delta_t_SFHH.dat;
 
-delta_t_dist_SFHH.dat: tij_SFHH.dat tij2delta_t_dist.py
+>deps.all: DATASETS
 {
-    python3 tij2delta_t_dist.py tij_SFHH.dat delta_t_SFHH.dat delta_t_dist_SFHH.dat
+    for DATASET in $(cat DATASETS); do
+        echo delta_t_dist_$DATASET.dat delta_t_$DATASET.dat;
+    done
 }
 
-delta_t_SFHH.dat: delta_t_dist_SFHH.dat
+DATASETS = { ECIR19 ECSS18 SFHH WS16 ICCSS17 }
+
+delta_t_dist_$DATASET.dat: tij_$DATASET.dat tij2delta_t_dist.py
 {
-    touch -c delta_t_SFHH.dat
+    python3 tij2delta_t_dist.py tij_$DATASET.dat delta_t_$DATASET.dat delta_t_dist_$DATASET.dat
+}
+
+delta_t_$DATASET.dat: delta_t_dist_$DATASET.dat
+{
+    touch -c delta_t_$DATASET.dat
 }
 
 tij_SFHH.dat: -t tij_SFHH.dat_.gz

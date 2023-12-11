@@ -1,6 +1,8 @@
 # Project specific ignores
 *.dat
 *.gz
+deps.*
+DATASETS
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
