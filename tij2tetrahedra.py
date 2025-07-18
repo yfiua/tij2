@@ -21,18 +21,17 @@ def main(f_input, f_output):
     # make it undirected
     df_tij = pd.concat([df_tij, df_tij.rename(columns={'i': 'j', 'j': 'i'})], ignore_index=True)
 
-    # Compute contact duration distribution
+    # get boundaries for t and node IDs
     min_t, max_t = df_tij['t'].min(), df_tij['t'].max()
     max_id = df_tij['j'].max() + 1
 
-    ## triangle age matrix
-    delta_t = {}
-    delta_t_history, i_history, j_history, k_history = [], [], [], []
+    ## all tetrahedra
+    df_tetrahedra = pd.DataFrame(columns=['t', 'i', 'j', 'k', 'l'])
 
     ## function to get triangles, assuming i < j < k
     def get_triangles(A):
-        B = A @ A
-        B = np.logical_and(A, B)
+        # get triangles (i, j are connected by an edge and a 2-hop path)
+        B = np.logical_and(A, A @ A)
         i, j = np.where(B)
 
         for i_, j_ in zip(i, j):
@@ -42,6 +41,18 @@ def main(f_input, f_output):
                     if j_ < k_:
                         yield i_, j_, k_
 
+    ## function to get tetrahedra
+    def get_tetrahedra(A):
+        # get triangles first
+        i, j, k = zip(*get_triangles(A))
+
+        for i_, j_, k_ in zip(i, j, k):
+            # l is the fourth node that forms a tetrahedron with i, j, k
+            l = np.where(A[i_, :] * A[j_, :] * A[k_, :])[0]
+            for l_ in l:
+                if k_ < l_:
+                    yield i_, j_, k_, l_
+
     t_interval = 20
     for t in tqdm(np.arange(min_t, max_t, t_interval)):
         df_cursor = df_tij[np.logical_and(df_tij['t'] >= t, df_tij['t'] < (t + t_interval))]
@@ -50,36 +61,17 @@ def main(f_input, f_output):
         A = np.zeros([max_id, max_id])
         A[df_cursor['i'].values, df_cursor['j'].values] = 1
 
-        # set for the triangles
-        A_3 = {(i, j, k) for i, j, k in get_triangles(A)}
-
-        ## triangles to disappear, i.e., delta_t > 0 and not in A_3
-        triangles_disappear = {k: delta_t[k] for k in delta_t.keys() if k not in A_3}
-
-        ## get indices for the triangles to disappear
-        if len(triangles_disappear) > 0:
-            i_disappear, j_disappear, k_disappear = zip(*triangles_disappear.keys())
-
-            ## record ages, i, j, k, and set ages as 0, for the triangles to disappear
-            delta_t_history = np.append(delta_t_history, list(triangles_disappear.values()))
-            i_history = np.append(i_history, i_disappear)
-            j_history = np.append(j_history, j_disappear)
-            k_history = np.append(k_history, k_disappear)
-
-            # remove the triangles to disappear
-            for k in triangles_disappear.keys():
-                del delta_t[k]
-
-        ## update triangle age
-        for k in A_3:
-            if k in delta_t:
-                delta_t[k] += 1
-            else:
-                delta_t[k] = 1
+        # tetrahedra
+        try:
+            i_, j_, k_, l_ = zip(*get_tetrahedra(A))
+            df_tetrahedra = pd.concat([df_tetrahedra, pd.DataFrame({'t': t, 'i': i_, 'j': j_, 'k': k_, 'l': l_})], ignore_index=True)
+        except ValueError:
+            # if no triangles found, continue
+            continue
 
     # Save data as CSV
-    df_triangles = pd.DataFrame({'i': i_history, 'j': j_history, 'k': k_history, 'delta_t': delta_t_history}).astype(int)
-    df_triangles.to_csv(f_output, index=False)
+    df_tetrahedra = df_tetrahedra.astype(int)
+    df_tetrahedra.to_csv(f_output, index=False)
 
 if __name__ == '__main__':
     f_input = sys.argv[1]
